@@ -5,24 +5,9 @@
 # Author: Roman Bogorodskiy <bogorodskiy@gmail.com>
 
 import sys
-
-if sys.version < '3':
-    from urllib import quote as urlquote
-    from urllib2 import urlopen
-    from HTMLParser import HTMLParser
-else:
-    from urllib.request import urlopen
-    from urllib.parse import quote as urlquote
-    from html.parser import HTMLParser
-
-
-class TermType(object):
-    pass
-
-
-class TermTypeRandom(TermType):
-    pass
-
+import aiohttp
+from urllib.parse import quote as urlquote
+from html.parser import HTMLParser
 
 class UrbanDictParser(HTMLParser):
 
@@ -67,15 +52,15 @@ def normalize_newlines(text):
     return text.replace('\r\n', '\n').replace('\r', '\n')
 
 
-def define(term):
-    if isinstance(term, TermTypeRandom):
+async def define(term):
+    if not term:
         url = "http://www.urbandictionary.com/random.php"
     else:
-        url = "http://www.urbandictionary.com/define.php?term=%s" % \
-              urlquote(term)
+        url = f"http://www.urbandictionary.com/define.php?term={urlquote(term)}"
 
-    f = urlopen(url)
-    data = f.read().decode('utf-8')
+    with aiohttp.ClientSession() as session:
+        async with session.get(url) as r:
+            data = await r.text()
 
     urbanDictParser = UrbanDictParser()
     urbanDictParser.feed(data)
